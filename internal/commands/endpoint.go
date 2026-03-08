@@ -22,6 +22,7 @@ func newEndpointCmd() *cobra.Command {
 	cmd.AddCommand(newEndpointCreateCmd())
 	cmd.AddCommand(newEndpointUpdateCmd())
 	cmd.AddCommand(newEndpointDeleteCmd())
+	cmd.AddCommand(newEndpointSwapTemplateCmd())
 
 	return cmd
 }
@@ -228,6 +229,60 @@ func newEndpointUpdateCmd() *cobra.Command {
 	cmd.Flags().IntVar(&workersMin, "workers-min", 0, "Minimum workers")
 	cmd.Flags().IntVar(&workersMax, "workers-max", 0, "Maximum workers")
 	cmd.Flags().IntVar(&idleTimeout, "idle-timeout", 0, "Idle timeout in seconds")
+
+	return cmd
+}
+
+func newEndpointSwapTemplateCmd() *cobra.Command {
+	var templateID string
+
+	cmd := &cobra.Command{
+		Use:   "swap-template <id>",
+		Short: "Swap the template assigned to an endpoint",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if templateID == "" {
+				exitError("validation_error", "--template-id is required")
+			}
+
+			input := map[string]any{
+				"endpointId": args[0],
+				"templateId": templateID,
+			}
+
+			if dryRunFlag {
+				return output.Print(getFormat(), map[string]any{
+					"dry_run": true,
+					"action":  "endpoint_swap_template",
+					"input":   input,
+				})
+			}
+
+			client := getClient()
+
+			query := fmt.Sprintf(`mutation($input: UpdateEndpointTemplateInput!) {
+				updateEndpointTemplate(input: $input) { %s }
+			}`, endpointFields)
+
+			vars := map[string]any{"input": input}
+
+			var result map[string]json.RawMessage
+			if err := client.Execute(query, vars, &result); err != nil {
+				exitError("api_error", err.Error())
+			}
+
+			var ep api.Endpoint
+			for _, v := range result {
+				if err := json.Unmarshal(v, &ep); err == nil && ep.ID != "" {
+					break
+				}
+			}
+
+			return output.Print(getFormat(), ep)
+		},
+	}
+
+	cmd.Flags().StringVar(&templateID, "template-id", "", "New template ID (required)")
 
 	return cmd
 }

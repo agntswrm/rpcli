@@ -27,8 +27,10 @@ func newPodCmd() *cobra.Command {
 	cmd.AddCommand(newPodListCmd())
 	cmd.AddCommand(newPodGetCmd())
 	cmd.AddCommand(newPodCreateCmd())
+	cmd.AddCommand(newPodCreateCPUCmd())
 	cmd.AddCommand(newPodUpdateCmd())
 	cmd.AddCommand(newPodStartCmd())
+	cmd.AddCommand(newPodBidResumeCmd())
 	cmd.AddCommand(newPodStopCmd())
 	cmd.AddCommand(newPodRestartCmd())
 	cmd.AddCommand(newPodResetCmd())
@@ -209,6 +211,105 @@ func getMutationName(spot bool) string {
 	return "podFindAndDeployOnDemand"
 }
 
+func newPodCreateCPUCmd() *cobra.Command {
+	var (
+		name          string
+		image         string
+		containerDisk float64
+		volumeSize    float64
+		templateID    string
+		envVars       []string
+		ports         string
+		volumePath    string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "create-cpu",
+		Short: "Create a CPU-only pod (no GPU)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if image == "" && templateID == "" {
+				exitError("validation_error", "--image or --template-id is required")
+			}
+
+			input := map[string]any{}
+			if name != "" {
+				input["name"] = name
+			}
+			if image != "" {
+				input["imageName"] = image
+			}
+			if volumeSize > 0 {
+				input["volumeInGb"] = volumeSize
+			}
+			if containerDisk > 0 {
+				input["containerDiskInGb"] = containerDisk
+			}
+			if templateID != "" {
+				input["templateId"] = templateID
+			}
+			if ports != "" {
+				input["ports"] = ports
+			}
+			if volumePath != "" {
+				input["volumeMountPath"] = volumePath
+			}
+			if len(envVars) > 0 {
+				envList := make([]map[string]string, 0, len(envVars))
+				for _, e := range envVars {
+					parts := strings.SplitN(e, "=", 2)
+					if len(parts) == 2 {
+						envList = append(envList, map[string]string{"key": parts[0], "value": parts[1]})
+					}
+				}
+				input["env"] = envList
+			}
+
+			if dryRunFlag {
+				return output.Print(getFormat(), map[string]any{
+					"dry_run":  true,
+					"action":   "pod_create_cpu",
+					"mutation": "deployCpuPod",
+					"input":    input,
+				})
+			}
+
+			client := getClient()
+
+			query := fmt.Sprintf(`mutation($input: DeployCpuPodInput!) {
+				deployCpuPod(input: $input) { %s }
+			}`, podFields)
+
+			vars := map[string]any{"input": input}
+
+			var result map[string]json.RawMessage
+			if err := client.Execute(query, vars, &result); err != nil {
+				exitError("api_error", err.Error())
+			}
+
+			var pod api.Pod
+			for _, v := range result {
+				if err := json.Unmarshal(v, &pod); err == nil && pod.ID != "" {
+					break
+				}
+			}
+
+			return output.Print(getFormat(), pod)
+		},
+	}
+
+	cmd.Flags().StringVar(&name, "name", "", "Pod name")
+	cmd.Flags().StringVar(&image, "image", "", "Docker image name")
+	cmd.Flags().Float64Var(&containerDisk, "container-disk", 20, "Container disk size in GB")
+	cmd.Flags().Float64Var(&volumeSize, "volume-size", 0, "Volume size in GB")
+	cmd.Flags().StringVar(&templateID, "template-id", "", "Template ID to use")
+	cmd.Flags().StringArrayVar(&envVars, "env", nil, "Environment variables (KEY=VALUE)")
+	cmd.Flags().StringVar(&ports, "ports", "", "Ports to expose (e.g. '8888/http,22/tcp')")
+	cmd.Flags().StringVar(&volumePath, "volume-path", "/workspace", "Volume mount path")
+
+	return cmd
+}
+
 func newPodUpdateCmd() *cobra.Command {
 	var (
 		gpuCount      int
@@ -319,6 +420,65 @@ func newPodStartCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&gpuCount, "gpu-count", 1, "Number of GPUs")
+
+	return cmd
+}
+
+func newPodBidResumeCmd() *cobra.Command {
+	var (
+		gpuCount int
+		bidPrice float64
+	)
+
+	cmd := &cobra.Command{
+		Use:   "bid-resume <id>",
+		Short: "Resume a spot/interruptible pod with a bid price",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if bidPrice <= 0 {
+				exitError("validation_error", "--bid-price is required and must be positive")
+			}
+
+			input := map[string]any{
+				"podId":     args[0],
+				"gpuCount":  gpuCount,
+				"bidPerGpu": bidPrice,
+			}
+
+			if dryRunFlag {
+				return output.Print(getFormat(), map[string]any{
+					"dry_run": true,
+					"action":  "pod_bid_resume",
+					"input":   input,
+				})
+			}
+
+			client := getClient()
+
+			query := fmt.Sprintf(`mutation($input: PodBidResumeInput!) {
+				podBidResume(input: $input) { %s }
+			}`, podFields)
+
+			vars := map[string]any{"input": input}
+
+			var result map[string]json.RawMessage
+			if err := client.Execute(query, vars, &result); err != nil {
+				exitError("api_error", err.Error())
+			}
+
+			var pod api.Pod
+			for _, v := range result {
+				if err := json.Unmarshal(v, &pod); err == nil && pod.ID != "" {
+					break
+				}
+			}
+
+			return output.Print(getFormat(), pod)
+		},
+	}
+
+	cmd.Flags().IntVar(&gpuCount, "gpu-count", 1, "Number of GPUs")
+	cmd.Flags().Float64Var(&bidPrice, "bid-price", 0, "Bid price per GPU (required)")
 
 	return cmd
 }

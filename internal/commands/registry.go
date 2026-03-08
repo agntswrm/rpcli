@@ -19,6 +19,7 @@ func newRegistryCmd() *cobra.Command {
 
 	cmd.AddCommand(newRegistryListCmd())
 	cmd.AddCommand(newRegistryCreateCmd())
+	cmd.AddCommand(newRegistryUpdateCmd())
 	cmd.AddCommand(newRegistryDeleteCmd())
 
 	return cmd
@@ -115,6 +116,76 @@ func newRegistryCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&url, "url", "", "Registry URL (required)")
 	cmd.Flags().StringVar(&username, "username", "", "Registry username (required)")
 	cmd.Flags().StringVar(&password, "password", "", "Registry password (required)")
+
+	return cmd
+}
+
+func newRegistryUpdateCmd() *cobra.Command {
+	var (
+		username string
+		password string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "update <id>",
+		Short: "Update a container registry credential",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			input := map[string]any{
+				"id": args[0],
+			}
+			if cmd.Flags().Changed("username") {
+				input["username"] = username
+			}
+			if cmd.Flags().Changed("password") {
+				input["password"] = password
+			}
+
+			if len(input) == 1 {
+				exitError("validation_error", "at least one of --username or --password is required")
+			}
+
+			if dryRunFlag {
+				dryInput := map[string]any{"id": args[0]}
+				if v, ok := input["username"]; ok {
+					dryInput["username"] = v
+				}
+				if _, ok := input["password"]; ok {
+					dryInput["password"] = "***"
+				}
+				return output.Print(getFormat(), map[string]any{
+					"dry_run": true,
+					"action":  "registry_update",
+					"input":   dryInput,
+				})
+			}
+
+			client := getClient()
+
+			query := fmt.Sprintf(`mutation($input: UpdateRegistryInput!) {
+				updateContainerRegistryAuth(input: $input) { %s }
+			}`, registryFields)
+
+			vars := map[string]any{"input": input}
+
+			var result map[string]json.RawMessage
+			if err := client.Execute(query, vars, &result); err != nil {
+				exitError("api_error", err.Error())
+			}
+
+			var reg api.Registry
+			for _, v := range result {
+				if err := json.Unmarshal(v, &reg); err == nil && reg.ID != "" {
+					break
+				}
+			}
+
+			return output.Print(getFormat(), reg)
+		},
+	}
+
+	cmd.Flags().StringVar(&username, "username", "", "New registry username")
+	cmd.Flags().StringVar(&password, "password", "", "New registry password")
 
 	return cmd
 }

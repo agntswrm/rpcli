@@ -90,6 +90,16 @@ type Price struct {
 	Uninterruptable   float64 `json:"uninterruptablePrice" yaml:"uninterruptablePrice"`
 }
 
+// CPUType represents a CPU type.
+type CPUType struct {
+	ID             string `json:"id" yaml:"id"`
+	DisplayName    string `json:"displayName" yaml:"displayName"`
+	Manufacturer   string `json:"manufacturer" yaml:"manufacturer"`
+	Cores          int    `json:"cores" yaml:"cores"`
+	ThreadsPerCore int    `json:"threadsPerCore" yaml:"threadsPerCore"`
+	GroupID        string `json:"groupId" yaml:"groupId"`
+}
+
 // Secret represents an API secret.
 type Secret struct {
 	Name      string `json:"name" yaml:"name"`

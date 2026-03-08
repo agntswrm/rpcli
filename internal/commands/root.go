@@ -57,6 +57,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newConfigCmd())
 	rootCmd.AddCommand(newGPUCmd())
+	rootCmd.AddCommand(newCPUCmd())
 	rootCmd.AddCommand(newPodCmd())
 	rootCmd.AddCommand(newEndpointCmd())
 	rootCmd.AddCommand(newTemplateCmd())
