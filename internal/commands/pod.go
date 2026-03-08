@@ -27,7 +27,6 @@ func newPodCmd() *cobra.Command {
 	cmd.AddCommand(newPodListCmd())
 	cmd.AddCommand(newPodGetCmd())
 	cmd.AddCommand(newPodCreateCmd())
-	cmd.AddCommand(newPodCreateCPUCmd())
 	cmd.AddCommand(newPodUpdateCmd())
 	cmd.AddCommand(newPodStartCmd())
 	cmd.AddCommand(newPodBidResumeCmd())
@@ -91,7 +90,7 @@ func newPodGetCmd() *cobra.Command {
 func newPodCreateCmd() *cobra.Command {
 	var (
 		name          string
-		gpuType       string
+		hardware      string
 		gpuCount      int
 		image         string
 		volumeSize    float64
@@ -106,132 +105,22 @@ func newPodCreateCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a new pod",
+		Short: "Create a new pod (auto-detects GPU vs CPU from --hardware)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if gpuType == "" {
-				exitError("validation_error", "--gpu-type is required")
+			if hardware == "" {
+				exitError("validation_error", "--hardware is required (GPU type ID or CPU type ID)")
 			}
 			if image == "" && templateID == "" {
 				exitError("validation_error", "--image or --template-id is required")
-			}
-
-			input := map[string]any{
-				"gpuTypeId":  gpuType,
-				"gpuCount":   gpuCount,
-				"cloudType":  cloudType,
-			}
-			if name != "" {
-				input["name"] = name
-			}
-			if image != "" {
-				input["imageName"] = image
-			}
-			if volumeSize > 0 {
-				input["volumeInGb"] = volumeSize
-			}
-			if containerDisk > 0 {
-				input["containerDiskInGb"] = containerDisk
-			}
-			if templateID != "" {
-				input["templateId"] = templateID
-			}
-			if ports != "" {
-				input["ports"] = ports
-			}
-			if volumePath != "" {
-				input["volumeMountPath"] = volumePath
-			}
-			if len(envVars) > 0 {
-				envList := make([]map[string]string, 0, len(envVars))
-				for _, e := range envVars {
-					parts := strings.SplitN(e, "=", 2)
-					if len(parts) == 2 {
-						envList = append(envList, map[string]string{"key": parts[0], "value": parts[1]})
-					}
-				}
-				input["env"] = envList
-			}
-
-			if dryRunFlag {
-				return output.Print(getFormat(), map[string]any{
-					"dry_run":  true,
-					"action":   "pod_create",
-					"mutation": getMutationName(spot),
-					"input":    input,
-				})
 			}
 
 			client := getClient()
 
-			mutationName := getMutationName(spot)
-			query := fmt.Sprintf(`mutation($input: PodFindAndDeployOnDemandInput!) {
-				%s(input: $input) { %s }
-			}`, mutationName, podFields)
+			// Detect whether hardware is a CPU or GPU type
+			isCPU := isHardwareCPU(client, hardware)
 
-			vars := map[string]any{"input": input}
-
-			var result map[string]json.RawMessage
-			if err := client.Execute(query, vars, &result); err != nil {
-				exitError("api_error", err.Error())
-			}
-
-			// Extract the pod from the mutation result
-			var pod api.Pod
-			for _, v := range result {
-				if err := json.Unmarshal(v, &pod); err == nil && pod.ID != "" {
-					break
-				}
-			}
-
-			return output.Print(getFormat(), pod)
-		},
-	}
-
-	cmd.Flags().StringVar(&name, "name", "", "Pod name")
-	cmd.Flags().StringVar(&gpuType, "gpu-type", "", "GPU type ID (required)")
-	cmd.Flags().IntVar(&gpuCount, "gpu-count", 1, "Number of GPUs")
-	cmd.Flags().StringVar(&image, "image", "", "Docker image name")
-	cmd.Flags().Float64Var(&volumeSize, "volume-size", 0, "Volume size in GB")
-	cmd.Flags().Float64Var(&containerDisk, "container-disk", 20, "Container disk size in GB")
-	cmd.Flags().StringVar(&templateID, "template-id", "", "Template ID to use")
-	cmd.Flags().StringArrayVar(&envVars, "env", nil, "Environment variables (KEY=VALUE)")
-	cmd.Flags().StringVar(&ports, "ports", "", "Ports to expose (e.g. '8888/http,22/tcp')")
-	cmd.Flags().StringVar(&volumePath, "volume-path", "/workspace", "Volume mount path")
-	cmd.Flags().StringVar(&cloudType, "cloud-type", "ALL", "Cloud type: ALL, SECURE, COMMUNITY")
-	cmd.Flags().BoolVar(&spot, "spot", false, "Create a spot/interruptable pod")
-
-	return cmd
-}
-
-func getMutationName(spot bool) string {
-	if spot {
-		return "podRentInterruptable"
-	}
-	return "podFindAndDeployOnDemand"
-}
-
-func newPodCreateCPUCmd() *cobra.Command {
-	var (
-		name          string
-		image         string
-		containerDisk float64
-		volumeSize    float64
-		templateID    string
-		envVars       []string
-		ports         string
-		volumePath    string
-	)
-
-	cmd := &cobra.Command{
-		Use:   "create-cpu",
-		Short: "Create a CPU-only pod (no GPU)",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if image == "" && templateID == "" {
-				exitError("validation_error", "--image or --template-id is required")
-			}
-
+			// Build shared input fields
 			input := map[string]any{}
 			if name != "" {
 				input["name"] = name
@@ -265,20 +154,46 @@ func newPodCreateCPUCmd() *cobra.Command {
 				input["env"] = envList
 			}
 
-			if dryRunFlag {
-				return output.Print(getFormat(), map[string]any{
-					"dry_run":  true,
-					"action":   "pod_create_cpu",
-					"mutation": "deployCpuPod",
-					"input":    input,
-				})
+			var query string
+			if isCPU {
+				input["cpuTypeId"] = hardware
+
+				if dryRunFlag {
+					return output.Print(getFormat(), map[string]any{
+						"dry_run":  true,
+						"action":   "pod_create",
+						"mutation": "deployCpuPod",
+						"input":    input,
+					})
+				}
+
+				query = fmt.Sprintf(`mutation($input: DeployCpuPodInput!) {
+					deployCpuPod(input: $input) { %s }
+				}`, podFields)
+			} else {
+				input["gpuTypeId"] = hardware
+				input["gpuCount"] = gpuCount
+				input["cloudType"] = cloudType
+
+				mutationName := "podFindAndDeployOnDemand"
+				inputType := "PodFindAndDeployOnDemandInput"
+				if spot {
+					mutationName = "podRentInterruptable"
+				}
+
+				if dryRunFlag {
+					return output.Print(getFormat(), map[string]any{
+						"dry_run":  true,
+						"action":   "pod_create",
+						"mutation": mutationName,
+						"input":    input,
+					})
+				}
+
+				query = fmt.Sprintf(`mutation($input: %s!) {
+					%s(input: $input) { %s }
+				}`, inputType, mutationName, podFields)
 			}
-
-			client := getClient()
-
-			query := fmt.Sprintf(`mutation($input: DeployCpuPodInput!) {
-				deployCpuPod(input: $input) { %s }
-			}`, podFields)
 
 			vars := map[string]any{"input": input}
 
@@ -299,15 +214,58 @@ func newPodCreateCPUCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Pod name")
+	cmd.Flags().StringVar(&hardware, "hardware", "", "Hardware type ID - GPU (e.g. NVIDIA_A100_80GB) or CPU (e.g. CPU_3C_6T) (required)")
+	cmd.Flags().IntVar(&gpuCount, "gpu-count", 1, "Number of GPUs (GPU pods only)")
 	cmd.Flags().StringVar(&image, "image", "", "Docker image name")
-	cmd.Flags().Float64Var(&containerDisk, "container-disk", 20, "Container disk size in GB")
 	cmd.Flags().Float64Var(&volumeSize, "volume-size", 0, "Volume size in GB")
+	cmd.Flags().Float64Var(&containerDisk, "container-disk", 20, "Container disk size in GB")
 	cmd.Flags().StringVar(&templateID, "template-id", "", "Template ID to use")
 	cmd.Flags().StringArrayVar(&envVars, "env", nil, "Environment variables (KEY=VALUE)")
 	cmd.Flags().StringVar(&ports, "ports", "", "Ports to expose (e.g. '8888/http,22/tcp')")
 	cmd.Flags().StringVar(&volumePath, "volume-path", "/workspace", "Volume mount path")
+	cmd.Flags().StringVar(&cloudType, "cloud-type", "ALL", "Cloud type: ALL, SECURE, COMMUNITY (GPU pods only)")
+	cmd.Flags().BoolVar(&spot, "spot", false, "Create a spot/interruptable pod (GPU pods only)")
 
 	return cmd
+}
+
+// isHardwareCPU queries the API to determine if a hardware ID is a CPU type.
+// Returns true for CPU, false for GPU. Exits on error if the ID is not found in either list.
+func isHardwareCPU(client *api.Client, hardwareID string) bool {
+	// Check GPU types first (more common)
+	var gpuResult struct {
+		GPUTypes []struct {
+			ID string `json:"id"`
+		} `json:"gpuTypes"`
+	}
+	gpuQuery := `query { gpuTypes { id } }`
+	if err := client.Execute(gpuQuery, nil, &gpuResult); err != nil {
+		exitError("api_error", fmt.Sprintf("failed to query hardware types: %s", err.Error()))
+	}
+	for _, g := range gpuResult.GPUTypes {
+		if g.ID == hardwareID {
+			return false
+		}
+	}
+
+	// Check CPU types
+	var cpuResult struct {
+		CPUTypes []struct {
+			ID string `json:"id"`
+		} `json:"cpuTypes"`
+	}
+	cpuQuery := `query { cpuTypes { id } }`
+	if err := client.Execute(cpuQuery, nil, &cpuResult); err != nil {
+		exitError("api_error", fmt.Sprintf("failed to query hardware types: %s", err.Error()))
+	}
+	for _, c := range cpuResult.CPUTypes {
+		if c.ID == hardwareID {
+			return true
+		}
+	}
+
+	exitError("validation_error", fmt.Sprintf("hardware ID %q not found in GPU or CPU types", hardwareID))
+	return false
 }
 
 func newPodUpdateCmd() *cobra.Command {
