@@ -87,6 +87,9 @@ func (c *Client) Execute(query string, variables map[string]any, result any) err
 		return fmt.Errorf("failed to read response: %w", err)
 	}
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("unauthorized: invalid or expired API key")
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
@@ -96,14 +99,17 @@ func (c *Client) Execute(query string, variables map[string]any, result any) err
 		return fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	if len(gqlResp.Errors) > 0 {
-		return fmt.Errorf("API error: %s", gqlResp.Errors[0].Message)
-	}
-
-	if result != nil {
+	// If we have data, unmarshal it even if there are partial errors (common in GraphQL).
+	// Only fail on errors if there is no usable data.
+	if result != nil && len(gqlResp.Data) > 0 && string(gqlResp.Data) != "null" {
 		if err := json.Unmarshal(gqlResp.Data, result); err != nil {
 			return fmt.Errorf("failed to parse data: %w", err)
 		}
+		return nil
+	}
+
+	if len(gqlResp.Errors) > 0 {
+		return fmt.Errorf("API error: %s", gqlResp.Errors[0].Message)
 	}
 
 	return nil

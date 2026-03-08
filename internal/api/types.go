@@ -16,7 +16,7 @@ type Pod struct {
 	VolumeMountPath  string   `json:"volumeMountPath" yaml:"volumeMountPath"`
 	Ports            string   `json:"ports" yaml:"ports"`
 	DockerArgs       string   `json:"dockerArgs" yaml:"dockerArgs"`
-	Env              []EnvVar `json:"env" yaml:"env"`
+	Env              []string `json:"env" yaml:"env"`
 	TemplateID       string   `json:"templateId" yaml:"templateId"`
 	MachineID        string   `json:"machineId" yaml:"machineId"`
 	UptimeSeconds    int      `json:"uptimeSeconds" yaml:"uptimeSeconds"`
@@ -24,12 +24,6 @@ type Pod struct {
 	CreatedAt        string   `json:"createdAt" yaml:"createdAt"`
 	LastStartedAt    string   `json:"lastStartedAt" yaml:"lastStartedAt"`
 	LastStatusChange string   `json:"lastStatusChange" yaml:"lastStatusChange"`
-}
-
-// EnvVar represents an environment variable.
-type EnvVar struct {
-	Key   string `json:"key" yaml:"key"`
-	Value string `json:"value" yaml:"value"`
 }
 
 // Endpoint represents a serverless endpoint.
@@ -46,16 +40,11 @@ type Endpoint struct {
 
 // Template represents a pod template.
 type Template struct {
-	ID             string   `json:"id" yaml:"id"`
-	Name           string   `json:"name" yaml:"name"`
-	ImageName      string   `json:"imageName" yaml:"imageName"`
-	DockerStartCmd string   `json:"dockerStartCmd" yaml:"dockerStartCmd"`
-	ContainerDisk  float64  `json:"containerDiskInGb" yaml:"containerDiskInGb"`
-	VolumeMountPath string  `json:"volumeMountPath" yaml:"volumeMountPath"`
-	Ports          string   `json:"ports" yaml:"ports"`
-	Env            []EnvVar `json:"env" yaml:"env"`
-	IsPublic       bool     `json:"isPublic" yaml:"isPublic"`
-	IsServerless   bool     `json:"isServerless" yaml:"isServerless"`
+	ID            string  `json:"id" yaml:"id"`
+	Name          string  `json:"name" yaml:"name"`
+	ImageName     string  `json:"imageName" yaml:"imageName"`
+	ContainerDisk float64 `json:"containerDiskInGb" yaml:"containerDiskInGb"`
+	IsServerless  bool    `json:"isServerless" yaml:"isServerless"`
 }
 
 // Volume represents a network volume.
@@ -68,10 +57,8 @@ type Volume struct {
 
 // Registry represents a container registry credential.
 type Registry struct {
-	ID       string `json:"id" yaml:"id"`
-	Name     string `json:"name" yaml:"name"`
-	URL      string `json:"url" yaml:"url"`
-	Username string `json:"username" yaml:"username"`
+	ID   string `json:"id" yaml:"id"`
+	Name string `json:"name" yaml:"name"`
 }
 
 // GPUType represents a GPU type.
@@ -102,6 +89,7 @@ type CPUType struct {
 
 // Secret represents an API secret.
 type Secret struct {
+	ID        string `json:"id" yaml:"id"`
 	Name      string `json:"name" yaml:"name"`
 	CreatedAt string `json:"createdAt" yaml:"createdAt"`
 }

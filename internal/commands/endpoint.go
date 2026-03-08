@@ -297,23 +297,21 @@ func newEndpointDeleteCmd() *cobra.Command {
 				exitError("confirmation_required", "This is a destructive operation. Use --yes to confirm.")
 			}
 
-			input := map[string]any{"id": args[0]}
-
 			if dryRunFlag {
 				return output.Print(getFormat(), map[string]any{
-					"dry_run": true,
-					"action":  "endpoint_delete",
-					"input":   input,
+					"dry_run":     true,
+					"action":      "endpoint_delete",
+					"endpoint_id": args[0],
 				})
 			}
 
 			client := getClient()
 
-			query := `mutation($input: EndpointIdInput!) {
-				deleteEndpoint(input: $input)
+			query := `mutation($id: String!) {
+				deleteEndpoint(id: $id)
 			}`
 
-			vars := map[string]any{"input": input}
+			vars := map[string]any{"id": args[0]}
 
 			if err := client.Execute(query, vars, nil); err != nil {
 				exitError("api_error", err.Error())

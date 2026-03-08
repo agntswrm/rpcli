@@ -3,7 +3,6 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/agntswrm/rpcli/internal/api"
 	"github.com/agntswrm/rpcli/internal/output"
@@ -15,7 +14,7 @@ const podFields = `
 	gpuCount volumeInGb containerDiskInGb memoryInGb vcpuCount
 	costPerHr volumeMountPath ports dockerArgs templateId
 	machineId uptimeSeconds locked createdAt lastStartedAt lastStatusChange
-	env { key value }
+	env
 `
 
 func newPodCmd() *cobra.Command {
@@ -144,14 +143,7 @@ func newPodCreateCmd() *cobra.Command {
 				input["volumeMountPath"] = volumePath
 			}
 			if len(envVars) > 0 {
-				envList := make([]map[string]string, 0, len(envVars))
-				for _, e := range envVars {
-					parts := strings.SplitN(e, "=", 2)
-					if len(parts) == 2 {
-						envList = append(envList, map[string]string{"key": parts[0], "value": parts[1]})
-					}
-				}
-				input["env"] = envList
+				input["env"] = envVars
 			}
 
 			var query string
@@ -464,17 +456,21 @@ func newPodStopCmd() *cobra.Command {
 			client := getClient()
 
 			query := `mutation($input: PodStopInput!) {
-				podStop(input: $input)
+				podStop(input: $input) { id desiredStatus }
 			}`
 
 			vars := map[string]any{"input": input}
 
-			if err := client.Execute(query, vars, nil); err != nil {
+			var result struct {
+				PodStop api.Pod `json:"podStop"`
+			}
+			if err := client.Execute(query, vars, &result); err != nil {
 				exitError("api_error", err.Error())
 			}
 
 			return output.Print(getFormat(), map[string]string{
 				"status":  "ok",
+				"id":      result.PodStop.ID,
 				"message": fmt.Sprintf("Pod %s stopped", args[0]),
 			})
 		},
@@ -505,7 +501,7 @@ func newPodRestartCmd() *cobra.Command {
 
 			// Stop
 			stopQuery := `mutation($input: PodStopInput!) {
-				podStop(input: $input)
+				podStop(input: $input) { id desiredStatus }
 			}`
 			if err := client.Execute(stopQuery, map[string]any{"input": input}, nil); err != nil {
 				exitError("api_error", err.Error())
@@ -558,7 +554,7 @@ func newPodResetCmd() *cobra.Command {
 
 			// Stop then start to reset
 			stopQuery := `mutation($input: PodStopInput!) {
-				podStop(input: $input)
+				podStop(input: $input) { id desiredStatus }
 			}`
 			if err := client.Execute(stopQuery, map[string]any{"input": input}, nil); err != nil {
 				exitError("api_error", err.Error())

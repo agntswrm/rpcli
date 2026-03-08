@@ -29,7 +29,7 @@ func newSecretListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client := getClient()
 
-			query := `query { myself { secrets { name createdAt } } }`
+			query := `query { myself { secrets { id name createdAt } } }`
 
 			var result struct {
 				Myself struct {
@@ -60,11 +60,6 @@ func newSecretCreateCmd() *cobra.Command {
 				exitError("validation_error", "--name and --value are required")
 			}
 
-			input := map[string]any{
-				"name":  name,
-				"value": value,
-			}
-
 			if dryRunFlag {
 				return output.Print(getFormat(), map[string]any{
 					"dry_run": true,
@@ -78,20 +73,25 @@ func newSecretCreateCmd() *cobra.Command {
 
 			client := getClient()
 
-			query := `mutation($input: CreateSecretInput!) {
-				createSecret(input: $input) { name createdAt }
+			query := `mutation($input: SecretCreateInput!) {
+				secretCreate(input: $input) { id name }
 			}`
 
-			vars := map[string]any{"input": input}
+			vars := map[string]any{
+				"input": map[string]any{
+					"name":  name,
+					"value": value,
+				},
+			}
 
 			var result struct {
-				CreateSecret api.Secret `json:"createSecret"`
+				SecretCreate api.Secret `json:"secretCreate"`
 			}
 			if err := client.Execute(query, vars, &result); err != nil {
 				exitError("api_error", err.Error())
 			}
 
-			return output.Print(getFormat(), result.CreateSecret)
+			return output.Print(getFormat(), result.SecretCreate)
 		},
 	}
 
@@ -103,31 +103,29 @@ func newSecretCreateCmd() *cobra.Command {
 
 func newSecretDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete <name>",
-		Short: "Delete a secret",
+		Use:   "delete <id>",
+		Short: "Delete a secret by ID",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !yesFlag {
 				exitError("confirmation_required", "This is a destructive operation. Use --yes to confirm.")
 			}
 
-			input := map[string]any{"name": args[0]}
-
 			if dryRunFlag {
 				return output.Print(getFormat(), map[string]any{
-					"dry_run": true,
-					"action":  "secret_delete",
-					"input":   input,
+					"dry_run":   true,
+					"action":    "secret_delete",
+					"secret_id": args[0],
 				})
 			}
 
 			client := getClient()
 
-			query := `mutation($input: DeleteSecretInput!) {
-				deleteSecret(input: $input)
+			query := `mutation($id: ID!) {
+				secretDelete(id: $id)
 			}`
 
-			vars := map[string]any{"input": input}
+			vars := map[string]any{"id": args[0]}
 
 			if err := client.Execute(query, vars, nil); err != nil {
 				exitError("api_error", err.Error())
