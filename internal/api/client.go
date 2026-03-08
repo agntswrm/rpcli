@@ -11,7 +11,7 @@ import (
 
 const defaultBaseURL = "https://api.runpod.io/graphql"
 
-// Client is a GraphQL client for the RunPod API.
+// Client is a GraphQL client for the Runpod API.
 type Client struct {
 	baseURL    string
 	apiKey     string
@@ -19,7 +19,7 @@ type Client struct {
 	version    string
 }
 
-// NewClient creates a new RunPod API client.
+// NewClient creates a new Runpod API client.
 func NewClient(apiKey, version string) *Client {
 	return &Client{
 		baseURL: defaultBaseURL,

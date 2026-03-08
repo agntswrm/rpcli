@@ -44,12 +44,12 @@ func exitError(code, message string) {
 func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:           "rpcli",
-		Short:         "Agent-first CLI for RunPod infrastructure",
+		Short:         "Agent-first CLI for Runpod infrastructure",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
-	rootCmd.PersistentFlags().StringVar(&apiKeyFlag, "api-key", "", "RunPod API key (overrides env and config)")
+	rootCmd.PersistentFlags().StringVar(&apiKeyFlag, "api-key", "", "Runpod API key (overrides env and config)")
 	rootCmd.PersistentFlags().StringVarP(&outputFlag, "output", "o", "json", "Output format: json, table, yaml")
 	rootCmd.PersistentFlags().BoolVar(&dryRunFlag, "dry-run", false, "Show what would be done without making changes")
 	rootCmd.PersistentFlags().BoolVar(&yesFlag, "yes", false, "Skip confirmation for destructive operations")
@@ -64,6 +64,8 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newRegistryCmd())
 	rootCmd.AddCommand(newSecretCmd())
 	rootCmd.AddCommand(newBillingCmd())
+	rootCmd.AddCommand(newSSHCmd())
+	rootCmd.AddCommand(newDoctorCmd())
 
 	return rootCmd
 }

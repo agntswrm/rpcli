@@ -1,6 +1,6 @@
 package api
 
-// Pod represents a RunPod pod.
+// Pod represents a Runpod pod.
 type Pod struct {
 	ID               string   `json:"id" yaml:"id"`
 	Name             string   `json:"name" yaml:"name"`
@@ -94,6 +94,15 @@ type Price struct {
 type Secret struct {
 	Name      string `json:"name" yaml:"name"`
 	CreatedAt string `json:"createdAt" yaml:"createdAt"`
+}
+
+// PortMapping represents a pod's port mapping at runtime.
+type PortMapping struct {
+	IP          string `json:"ip" yaml:"ip"`
+	IsIPPublic  bool   `json:"isIpPublic" yaml:"isIpPublic"`
+	PrivatePort int    `json:"privatePort" yaml:"privatePort"`
+	PublicPort  int    `json:"publicPort" yaml:"publicPort"`
+	Type        string `json:"type" yaml:"type"`
 }
 
 // BillingInfo represents billing data.

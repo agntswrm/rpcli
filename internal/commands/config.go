@@ -21,7 +21,7 @@ func newConfigCmd() *cobra.Command {
 func newConfigSetKeyCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-key <api-key>",
-		Short: "Store a RunPod API key",
+		Short: "Store a Runpod API key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.SetKey(args[0]); err != nil {

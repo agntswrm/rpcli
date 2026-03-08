@@ -1,6 +1,6 @@
 {
   "name": "rpcli",
-  "description": "Control RunPod infrastructure via CLI",
+  "description": "Control Runpod infrastructure via CLI",
   "commands": [
     "pod",
     "endpoint",

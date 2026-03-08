@@ -21,7 +21,7 @@ const podFields = `
 func newPodCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pod",
-		Short: "Manage RunPod pods",
+		Short: "Manage Runpod pods",
 	}
 
 	cmd.AddCommand(newPodListCmd())

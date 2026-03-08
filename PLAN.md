@@ -1,7 +1,7 @@
 # rpcli Implementation Plan
 
 ## Overview
-Build an agent-first CLI in Go for managing RunPod infrastructure. RunPod uses a **GraphQL API** at `https://api.runpod.io/graphql` with API key auth via `?api_key=KEY` query parameter.
+Build an agent-first CLI in Go for managing Runpod infrastructure. Runpod uses a **GraphQL API** at `https://api.runpod.io/graphql` with API key auth via `?api_key=KEY` query parameter.
 
 ---
 
@@ -58,7 +58,7 @@ Build an agent-first CLI in Go for managing RunPod infrastructure. RunPod uses a
 ### 2.2 API types
 - File: `internal/api/types.go`
 - Go structs for: Pod, Endpoint, Template, Volume, Registry, GPU, Secret, Billing
-- Match RunPod GraphQL schema field names with JSON tags
+- Match Runpod GraphQL schema field names with JSON tags
 
 ---
 
@@ -223,7 +223,7 @@ Key files to create (in order):
 
 ## Implementation Notes
 
-- RunPod has both **GraphQL** (`https://api.runpod.io/graphql`) and **REST** (`https://rest.runpod.io/v1/`) APIs — we use GraphQL as it covers the full surface
+- Runpod has both **GraphQL** (`https://api.runpod.io/graphql`) and **REST** (`https://rest.runpod.io/v1/`) APIs — we use GraphQL as it covers the full surface
 - Auth is via query parameter `?api_key=KEY` for GraphQL
 - Key mutations: `podFindAndDeployOnDemand`, `podRentInterruptable`, `podResume`, `podStop`, `podTerminate`, `saveEndpoint`, `deleteEndpoint`
 - Key queries: `myself { pods {...} endpoints {...} podTemplates {...} }`, `pod(input: {podId: "..."})`, `gpuTypes`

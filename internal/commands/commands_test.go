@@ -34,6 +34,7 @@ func TestRootCommandHasSubcommands(t *testing.T) {
 	expected := []string{
 		"version", "config", "gpu", "pod", "endpoint",
 		"template", "volume", "registry", "secret", "billing",
+		"ssh", "doctor",
 	}
 
 	for _, name := range expected {
