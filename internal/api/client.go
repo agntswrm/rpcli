@@ -105,6 +105,11 @@ func (c *Client) Execute(query string, variables map[string]any, result any) err
 		if err := json.Unmarshal(gqlResp.Data, result); err != nil {
 			return fmt.Errorf("failed to parse data: %w", err)
 		}
+		// If errors exist and all top-level data values are null, the operation failed.
+		// This catches mutations that return {"mutationName": null} with errors.
+		if len(gqlResp.Errors) > 0 && isAllNullData(gqlResp.Data) {
+			return fmt.Errorf("API error: %s", gqlResp.Errors[0].Message)
+		}
 		return nil
 	}
 
@@ -113,4 +118,18 @@ func (c *Client) Execute(query string, variables map[string]any, result any) err
 	}
 
 	return nil
+}
+
+// isAllNullData checks if every top-level value in a JSON object is null.
+func isAllNullData(data json.RawMessage) bool {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(data, &m); err != nil {
+		return false
+	}
+	for _, v := range m {
+		if string(v) != "null" {
+			return false
+		}
+	}
+	return true
 }
