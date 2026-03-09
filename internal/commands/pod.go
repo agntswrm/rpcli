@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/agntswrm/rpcli/internal/api"
 	"github.com/agntswrm/rpcli/internal/output"
@@ -88,30 +89,32 @@ func newPodGetCmd() *cobra.Command {
 
 func newPodCreateCmd() *cobra.Command {
 	var (
-		name          string
-		hardware      string
-		gpuCount      int
-		image         string
-		volumeSize    float64
-		containerDisk float64
-		templateID    string
-		envVars       []string
-		ports         string
-		volumePath    string
-		cloudType     string
-		spot          bool
+		name            string
+		gpuCount        int
+		image           string
+		volumeSize      float64
+		containerDisk   float64
+		templateID      string
+		envVars         []string
+		ports           string
+		volumePath      string
+		cloudType       string
+		spot            bool
+		bidPrice        float64
+		networkVolumeID string
 	)
 
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a new pod (auto-detects GPU vs CPU from --hardware)",
-		Args:  cobra.NoArgs,
+		Use:   "create <hardware>",
+		Short: "Create a new pod (auto-detects GPU vs CPU)",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if hardware == "" {
-				exitError("validation_error", "--hardware is required (GPU type ID or CPU type ID)")
-			}
+			hardware := args[0]
 			if image == "" && templateID == "" {
 				exitError("validation_error", "--image or --template-id is required")
+			}
+			if spot && bidPrice <= 0 {
+				exitError("validation_error", "--bid-price is required when using --spot (set your max $/hr per GPU)")
 			}
 
 			client := getClient()
@@ -145,10 +148,13 @@ func newPodCreateCmd() *cobra.Command {
 			if len(envVars) > 0 {
 				input["env"] = envVars
 			}
+			if networkVolumeID != "" {
+				input["networkVolumeId"] = networkVolumeID
+			}
 
 			var query string
 			if isCPU {
-				input["cpuTypeId"] = hardware
+				input["instanceId"] = hardware
 
 				if dryRunFlag {
 					return output.Print(getFormat(), map[string]any{
@@ -159,7 +165,7 @@ func newPodCreateCmd() *cobra.Command {
 					})
 				}
 
-				query = fmt.Sprintf(`mutation($input: DeployCpuPodInput!) {
+				query = fmt.Sprintf(`mutation($input: deployCpuPodInput!) {
 					deployCpuPod(input: $input) { %s }
 				}`, podFields)
 			} else {
@@ -171,6 +177,8 @@ func newPodCreateCmd() *cobra.Command {
 				inputType := "PodFindAndDeployOnDemandInput"
 				if spot {
 					mutationName = "podRentInterruptable"
+					inputType = "PodRentInterruptableInput"
+					input["bidPerGpu"] = bidPrice
 				}
 
 				if dryRunFlag {
@@ -206,7 +214,6 @@ func newPodCreateCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Pod name")
-	cmd.Flags().StringVar(&hardware, "hardware", "", "Hardware type ID - GPU (e.g. NVIDIA_A100_80GB) or CPU (e.g. CPU_3C_6T) (required)")
 	cmd.Flags().IntVar(&gpuCount, "gpu-count", 1, "Number of GPUs (GPU pods only)")
 	cmd.Flags().StringVar(&image, "image", "", "Docker image name")
 	cmd.Flags().Float64Var(&volumeSize, "volume-size", 0, "Volume size in GB")
@@ -216,13 +223,15 @@ func newPodCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&ports, "ports", "", "Ports to expose (e.g. '8888/http,22/tcp')")
 	cmd.Flags().StringVar(&volumePath, "volume-path", "/workspace", "Volume mount path")
 	cmd.Flags().StringVar(&cloudType, "cloud-type", "ALL", "Cloud type: ALL, SECURE, COMMUNITY (GPU pods only)")
-	cmd.Flags().BoolVar(&spot, "spot", false, "Create a spot/interruptable pod (GPU pods only)")
+	cmd.Flags().BoolVar(&spot, "spot", false, "Create a spot/interruptable pod (GPU pods only, requires --bid-price)")
+	cmd.Flags().Float64Var(&bidPrice, "bid-price", 0, "Max bid price per GPU in $/hr (required with --spot)")
+	cmd.Flags().StringVar(&networkVolumeID, "network-volume", "", "Network volume ID to attach")
 
 	return cmd
 }
 
-// isHardwareCPU queries the API to determine if a hardware ID is a CPU type.
-// Returns true for CPU, false for GPU. Exits on error if the ID is not found in either list.
+// isHardwareCPU queries the API to determine if a hardware ID is a CPU flavor or GPU type.
+// Returns true for CPU (cpuFlavor), false for GPU. Exits on error if the ID is not found in either list.
 func isHardwareCPU(client *api.Client, hardwareID string) bool {
 	// Check GPU types first (more common)
 	var gpuResult struct {
@@ -240,23 +249,25 @@ func isHardwareCPU(client *api.Client, hardwareID string) bool {
 		}
 	}
 
-	// Check CPU types
+	// Check CPU flavors (used as instanceId for deployCpuPod)
+	// instanceId format: <flavor>-<vcpus>-<memoryGB> (e.g., "cpu3c-2-4")
+	// Accept exact match on flavor ID or prefix match with dash separator
 	var cpuResult struct {
-		CPUTypes []struct {
+		CPUFlavors []struct {
 			ID string `json:"id"`
-		} `json:"cpuTypes"`
+		} `json:"cpuFlavors"`
 	}
-	cpuQuery := `query { cpuTypes { id } }`
+	cpuQuery := `query { cpuFlavors { id } }`
 	if err := client.Execute(cpuQuery, nil, &cpuResult); err != nil {
 		exitError("api_error", fmt.Sprintf("failed to query hardware types: %s", err.Error()))
 	}
-	for _, c := range cpuResult.CPUTypes {
-		if c.ID == hardwareID {
+	for _, c := range cpuResult.CPUFlavors {
+		if c.ID == hardwareID || strings.HasPrefix(hardwareID, c.ID+"-") {
 			return true
 		}
 	}
 
-	exitError("validation_error", fmt.Sprintf("hardware ID %q not found in GPU or CPU types", hardwareID))
+	exitError("validation_error", fmt.Sprintf("hardware ID %q not found in GPU types or CPU flavors (use 'resource gpu' or 'resource cpu' to list valid IDs)", hardwareID))
 	return false
 }
 

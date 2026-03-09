@@ -1,0 +1,8 @@
+{
+  "name": "Create spot pod for batch inference",
+  "category": "pod",
+  "description": "User wants the cheapest possible GPU pod using spot/interruptible pricing.",
+  "user_intent": "I need a cheap GPU pod for a one-off batch job. Use spot/interruptible pricing with an RTX A4000 (or similar cheap GPU). Check availability first to find the spot price, then bid at that price. Use runpod/pytorch:2.1.0 image, name it rpcli-eval-spot. After creating, verify the pod exists.",
+  "expected_outcome": "Agent checks GPU availability to find spot pricing, creates a pod with --spot and --bid-price flags for interruptible pricing. The pod is verified to exist.",
+  "max_turns": 10
+}

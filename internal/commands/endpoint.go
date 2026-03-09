@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/agntswrm/rpcli/internal/api"
 	"github.com/agntswrm/rpcli/internal/output"
@@ -89,8 +90,9 @@ func newEndpointGetCmd() *cobra.Command {
 func createServerlessTemplate(client *api.Client, name, image, dockerArgs string, containerDisk float64, volumeSize int, volumePath string, envVars []string) (string, error) {
 	envList := parseEnvList(envVars)
 
+	suffix := fmt.Sprintf("%d", time.Now().Unix())
 	input := map[string]any{
-		"name":              autoTemplatePrefix + name,
+		"name":              autoTemplatePrefix + name + "-" + suffix,
 		"imageName":         image,
 		"containerDiskInGb": containerDisk,
 		"volumeInGb":        volumeSize,
@@ -138,18 +140,19 @@ func parseEnvList(envVars []string) []map[string]string {
 
 func newEndpointCreateCmd() *cobra.Command {
 	var (
-		name          string
-		image         string
-		gpuIDs        string
-		workersMin    int
-		workersMax    int
-		idleTimeout   int
-		templateID    string
-		dockerArgs    string
-		containerDisk float64
-		volumeSize    int
-		volumePath    string
-		envVars       []string
+		name            string
+		image           string
+		gpuIDs          string
+		workersMin      int
+		workersMax      int
+		idleTimeout     int
+		templateID      string
+		dockerArgs      string
+		containerDisk   float64
+		volumeSize      int
+		volumePath      string
+		envVars         []string
+		networkVolumeID string
 	)
 
 	cmd := &cobra.Command{
@@ -158,7 +161,7 @@ func newEndpointCreateCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if name == "" || gpuIDs == "" {
-				exitError("validation_error", "--name and --gpu-ids are required")
+				exitError("validation_error", "--name and --gpus are required")
 			}
 			if image == "" && templateID == "" {
 				exitError("validation_error", "--image or --template-id is required")
@@ -179,7 +182,7 @@ func newEndpointCreateCmd() *cobra.Command {
 					dryOut["template_id"] = templateID
 				} else {
 					dryOut["auto_template"] = map[string]any{
-						"name":  autoTemplatePrefix + name,
+						"name":  autoTemplatePrefix + name + "-<timestamp>",
 						"image": image,
 						"env":   envVars,
 					}
@@ -209,6 +212,9 @@ func newEndpointCreateCmd() *cobra.Command {
 			if idleTimeout > 0 {
 				epInput["idleTimeout"] = idleTimeout
 			}
+			if networkVolumeID != "" {
+				epInput["networkVolumeId"] = networkVolumeID
+			}
 
 			query := fmt.Sprintf(`mutation($input: EndpointInput!) {
 				saveEndpoint(input: $input) { %s }
@@ -232,7 +238,7 @@ func newEndpointCreateCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&name, "name", "", "Endpoint name (required)")
 	cmd.Flags().StringVar(&image, "image", "", "Docker image (creates serverless template automatically)")
-	cmd.Flags().StringVar(&gpuIDs, "gpu-ids", "", "GPU type IDs (required)")
+	cmd.Flags().StringVar(&gpuIDs, "gpus", "", "GPU type IDs (required)")
 	cmd.Flags().IntVar(&workersMin, "workers-min", 0, "Minimum number of workers")
 	cmd.Flags().IntVar(&workersMax, "workers-max", 1, "Maximum number of workers")
 	cmd.Flags().IntVar(&idleTimeout, "idle-timeout", 0, "Idle timeout in seconds")
@@ -242,23 +248,25 @@ func newEndpointCreateCmd() *cobra.Command {
 	cmd.Flags().IntVar(&volumeSize, "volume-size", 0, "Persistent volume size in GB")
 	cmd.Flags().StringVar(&volumePath, "volume-path", "", "Volume mount path")
 	cmd.Flags().StringArrayVar(&envVars, "env", nil, "Environment variables (KEY=VALUE)")
+	cmd.Flags().StringVar(&networkVolumeID, "network-volume", "", "Network volume ID to attach")
 
 	return cmd
 }
 
 func newEndpointUpdateCmd() *cobra.Command {
 	var (
-		name          string
-		image         string
-		gpuIDs        string
-		workersMin    int
-		workersMax    int
-		idleTimeout   int
-		dockerArgs    string
-		containerDisk float64
-		volumeSize    int
-		volumePath    string
-		envVars       []string
+		name            string
+		image           string
+		gpuIDs          string
+		workersMin      int
+		workersMax      int
+		idleTimeout     int
+		dockerArgs      string
+		containerDisk   float64
+		volumeSize      int
+		volumePath      string
+		envVars         []string
+		networkVolumeID string
 	)
 
 	cmd := &cobra.Command{
@@ -269,9 +277,9 @@ func newEndpointUpdateCmd() *cobra.Command {
 			templateChanged := cmd.Flags().Changed("image") || cmd.Flags().Changed("env") ||
 				cmd.Flags().Changed("docker-args") || cmd.Flags().Changed("container-disk") ||
 				cmd.Flags().Changed("volume-size") || cmd.Flags().Changed("volume-path")
-			endpointChanged := cmd.Flags().Changed("name") || cmd.Flags().Changed("gpu-ids") ||
+			endpointChanged := cmd.Flags().Changed("name") || cmd.Flags().Changed("gpus") ||
 				cmd.Flags().Changed("workers-min") || cmd.Flags().Changed("workers-max") ||
-				cmd.Flags().Changed("idle-timeout")
+				cmd.Flags().Changed("idle-timeout") || cmd.Flags().Changed("network-volume")
 
 			if !endpointChanged && !templateChanged {
 				exitError("validation_error", "no flags specified to update")
@@ -381,10 +389,13 @@ func newEndpointUpdateCmd() *cobra.Command {
 					"workersMax": current.WorkersMax,
 					"idleTimeout": current.IdleTimeout,
 				}
+				if current.NetworkVolume != "" {
+					epInput["networkVolumeId"] = current.NetworkVolume
+				}
 				if cmd.Flags().Changed("name") {
 					epInput["name"] = name
 				}
-				if cmd.Flags().Changed("gpu-ids") {
+				if cmd.Flags().Changed("gpus") {
 					epInput["gpuIds"] = gpuIDs
 				}
 				if cmd.Flags().Changed("workers-min") {
@@ -395,6 +406,9 @@ func newEndpointUpdateCmd() *cobra.Command {
 				}
 				if cmd.Flags().Changed("idle-timeout") {
 					epInput["idleTimeout"] = idleTimeout
+				}
+				if cmd.Flags().Changed("network-volume") {
+					epInput["networkVolumeId"] = networkVolumeID
 				}
 
 				if dryRunFlag {
@@ -431,7 +445,7 @@ func newEndpointUpdateCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&name, "name", "", "Endpoint name")
 	cmd.Flags().StringVar(&image, "image", "", "Docker image (updates the endpoint's template)")
-	cmd.Flags().StringVar(&gpuIDs, "gpu-ids", "", "GPU type IDs")
+	cmd.Flags().StringVar(&gpuIDs, "gpus", "", "GPU type IDs")
 	cmd.Flags().IntVar(&workersMin, "workers-min", 0, "Minimum workers")
 	cmd.Flags().IntVar(&workersMax, "workers-max", 0, "Maximum workers")
 	cmd.Flags().IntVar(&idleTimeout, "idle-timeout", 0, "Idle timeout in seconds")
@@ -440,6 +454,7 @@ func newEndpointUpdateCmd() *cobra.Command {
 	cmd.Flags().IntVar(&volumeSize, "volume-size", 0, "Persistent volume size in GB")
 	cmd.Flags().StringVar(&volumePath, "volume-path", "", "Volume mount path")
 	cmd.Flags().StringArrayVar(&envVars, "env", nil, "Environment variables (KEY=VALUE)")
+	cmd.Flags().StringVar(&networkVolumeID, "network-volume", "", "Network volume ID to attach")
 
 	return cmd
 }

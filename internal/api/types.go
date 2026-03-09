@@ -63,18 +63,17 @@ type Registry struct {
 
 // GPUType represents a GPU type.
 type GPUType struct {
-	ID                string  `json:"id" yaml:"id"`
-	DisplayName       string  `json:"displayName" yaml:"displayName"`
-	MemoryInGB        int     `json:"memoryInGb" yaml:"memoryInGb"`
-	SecureCloud       bool    `json:"secureCloud" yaml:"secureCloud"`
-	CommunityCloud    bool    `json:"communityCloud" yaml:"communityCloud"`
-	LowestPrice       *Price  `json:"lowestPrice" yaml:"lowestPrice"`
-}
-
-// Price represents pricing info.
-type Price struct {
-	MinimumBidPrice   float64 `json:"minimumBidPrice" yaml:"minimumBidPrice"`
-	Uninterruptable   float64 `json:"uninterruptablePrice" yaml:"uninterruptablePrice"`
+	ID                 string   `json:"id" yaml:"id"`
+	DisplayName        string   `json:"displayName" yaml:"displayName"`
+	MemoryInGB         int      `json:"memoryInGb" yaml:"memoryInGb"`
+	SecureCloud        bool     `json:"secureCloud" yaml:"secureCloud"`
+	CommunityCloud     bool     `json:"communityCloud" yaml:"communityCloud"`
+	SecurePrice        *float64 `json:"securePrice,omitempty" yaml:"securePrice,omitempty"`
+	CommunityPrice     *float64 `json:"communityPrice,omitempty" yaml:"communityPrice,omitempty"`
+	SecureSpotPrice    *float64 `json:"secureSpotPrice,omitempty" yaml:"secureSpotPrice,omitempty"`
+	CommunitySpotPrice *float64 `json:"communitySpotPrice,omitempty" yaml:"communitySpotPrice,omitempty"`
+	MaxGpuCount        int      `json:"maxGpuCount,omitempty" yaml:"maxGpuCount,omitempty"`
+	StockStatus        string   `json:"stockStatus,omitempty" yaml:"stockStatus,omitempty"`
 }
 
 // CPUType represents a CPU type.
@@ -85,6 +84,12 @@ type CPUType struct {
 	Cores          int    `json:"cores" yaml:"cores"`
 	ThreadsPerCore int    `json:"threadsPerCore" yaml:"threadsPerCore"`
 	GroupID        string `json:"groupId" yaml:"groupId"`
+}
+
+// CPUFlavor represents a CPU instance flavor for pod creation.
+type CPUFlavor struct {
+	ID      string `json:"id" yaml:"id"`
+	GroupID string `json:"groupId" yaml:"groupId"`
 }
 
 // Secret represents an API secret.

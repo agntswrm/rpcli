@@ -1,3 +1,6 @@
-/rpcli
+/dist/
 rpcli-*
 *.exe
+.env
+evals/report.json
+node_modules/

@@ -1,0 +1,8 @@
+{
+  "name": "CPU pod for data preprocessing",
+  "category": "pod",
+  "description": "User wants a CPU-only pod for data preprocessing, no GPU needed.",
+  "user_intent": "I need a CPU-only pod for data preprocessing, no GPU required. Find available CPU flavors first, then create a pod with ubuntu:22.04 using a valid CPU instanceId (format: <flavor>-<vcpus>-<memGB>, e.g. cpu3c-2-4). Name it rpcli-eval-cpu. After creating, verify the pod exists.",
+  "expected_outcome": "Agent lists CPU flavors via 'resource cpu', picks a valid flavor, constructs an instanceId (e.g. cpu3c-2-4), and creates a CPU pod. The pod is verified to exist.",
+  "max_turns": 8
+}
