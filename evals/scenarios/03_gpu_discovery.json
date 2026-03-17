@@ -1,0 +1,8 @@
+{
+  "name": "Find cheapest GPU for 7B model",
+  "category": "resource",
+  "description": "User wants to find the cheapest GPU with enough VRAM for a 7B parameter model.",
+  "user_intent": "I want to run a 7B parameter model. I need at least 16GB VRAM. What GPUs are available and what are the prices? Show me availability and pricing.",
+  "expected_outcome": "Agent lists GPU types to see VRAM, then checks availability/pricing. It identifies GPUs with 16GB+ VRAM and their pricing information.",
+  "max_turns": 6
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Endpoint with Network Volume",
+  "category": "endpoint",
+  "description": "Create a serverless endpoint with a network volume attached for persistent model storage.",
+  "user_intent": "Create a serverless endpoint with a network volume for persistent model storage. First create a 10GB network volume named rpcli-eval-ep-vol in US-TX-3. Then create an endpoint called rpcli-eval-ep-vol using image runpod/pytorch:2.1.0 on ADA_24 GPUs with that network volume attached via --network-volume. Verify the endpoint shows the networkVolumeId.",
+  "expected_outcome": "Agent creates a volume, creates an endpoint with --network-volume pointing to that volume ID, and verifies the endpoint has the networkVolumeId set.",
+  "max_turns": 10
+}

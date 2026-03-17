@@ -1,0 +1,8 @@
+{
+  "name": "Full stack: secret + endpoint",
+  "category": "multi_resource",
+  "description": "User wants to set up a secret and then deploy an endpoint that would use it.",
+  "user_intent": "I need to deploy a private ML model as a serverless endpoint. First, store my HuggingFace token as a secret named RPCLI_EVAL_HF_TOKEN with value hf_test123. Then create an endpoint named rpcli-eval-stack with image my/private-model:v1 and RTX 4090 GPU. Verify both the secret and endpoint exist.",
+  "expected_outcome": "Agent creates the secret first, then creates the endpoint, verifies both exist. Operations are in the correct order — secret before endpoint.",
+  "max_turns": 10
+}

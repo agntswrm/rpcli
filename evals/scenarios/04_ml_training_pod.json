@@ -1,0 +1,8 @@
+{
+  "name": "Create ML training pod with Jupyter",
+  "category": "pod",
+  "description": "User wants a GPU pod for ML training with persistent storage and Jupyter access.",
+  "user_intent": "I need a GPU pod for ML training. Use an RTX 4090 with the runpod/pytorch:2.1.0 image. I want 100GB persistent storage mounted at /workspace, expose port 8888 for Jupyter. Name it rpcli-eval-train. After creating, verify the pod exists by getting its details.",
+  "expected_outcome": "Agent creates a pod with the correct GPU, image, volume size, volume path, and exposed ports. The pod is verified to exist.",
+  "max_turns": 8
+}

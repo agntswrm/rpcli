@@ -1,0 +1,8 @@
+{
+  "name": "Check billing across all resources",
+  "category": "billing",
+  "description": "User wants to check their spending across pods, endpoints, and volumes.",
+  "user_intent": "I want to check my spending. Show me billing for pods, endpoints, and volumes.",
+  "expected_outcome": "Agent runs billing commands for pods, endpoints, and volumes, showing cost information for each resource type.",
+  "max_turns": 6
+}

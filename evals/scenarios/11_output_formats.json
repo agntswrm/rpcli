@@ -1,0 +1,8 @@
+{
+  "name": "Test output format switching",
+  "category": "output",
+  "description": "User wants to see data in different output formats.",
+  "user_intent": "Show me GPU types in all three output formats: JSON, table, and YAML.",
+  "expected_outcome": "Agent runs the GPU listing command three times with -o json, -o table, and -o yaml. Each produces correctly formatted output in the respective format.",
+  "max_turns": 6
+}

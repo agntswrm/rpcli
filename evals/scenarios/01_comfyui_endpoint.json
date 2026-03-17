@@ -1,0 +1,8 @@
+{
+  "name": "Deploy ComfyUI as serverless API",
+  "category": "endpoint",
+  "description": "User wants to deploy ComfyUI as a serverless endpoint for image generation.",
+  "user_intent": "I want to deploy ComfyUI as a serverless API endpoint for image generation. Use a 24GB VRAM GPU. Name it rpcli-eval-comfyui. Use the image timpietruskyblibla/runpod-worker-comfy:3.0.0. After creating the endpoint, verify it exists by listing endpoints.",
+  "expected_outcome": "Agent creates an endpoint with the correct image and a 24GB GPU type, then verifies it was created by listing endpoints.",
+  "max_turns": 8
+}

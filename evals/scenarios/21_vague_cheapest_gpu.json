@@ -1,0 +1,8 @@
+{
+  "name": "Vague: find cheapest GPU and create pod",
+  "category": "pod",
+  "description": "User wants the cheapest available GPU — agent must check pricing and pick the best option.",
+  "user_intent": "What's the cheapest GPU you have available right now? Create a pod with it using runpod/pytorch:2.1.0. Name it rpcli-eval-vague-cheap.",
+  "expected_outcome": "Agent checks GPU availability and pricing, identifies the cheapest option, and creates a pod with that GPU. The agent demonstrates understanding of pricing data.",
+  "max_turns": 10
+}

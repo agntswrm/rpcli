@@ -168,7 +168,7 @@ func printStructSliceTable(tw *tabwriter.Writer, v reflect.Value) error {
 		elem := indirect(v.Index(i))
 		vals := make([]string, len(indices))
 		for j, idx := range indices {
-			vals[j] = fmt.Sprintf("%v", elem.Field(idx))
+			vals[j] = formatValue(elem.Field(idx))
 		}
 		fmt.Fprintln(tw, strings.Join(vals, "\t"))
 	}
@@ -189,7 +189,18 @@ func printStructTable(tw *tabwriter.Writer, v reflect.Value) error {
 		if idx := strings.Index(name, ","); idx != -1 {
 			name = name[:idx]
 		}
-		fmt.Fprintf(tw, "%s\t%v\n", strings.ToUpper(name), v.Field(i))
+		fmt.Fprintf(tw, "%s\t%s\n", strings.ToUpper(name), formatValue(v.Field(i)))
 	}
 	return nil
+}
+
+// formatValue dereferences pointers and formats nil as "-".
+func formatValue(v reflect.Value) string {
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return "-"
+		}
+		return fmt.Sprintf("%v", v.Elem())
+	}
+	return fmt.Sprintf("%v", v)
 }

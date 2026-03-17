@@ -1,0 +1,8 @@
+{
+  "name": "Config and diagnostics check",
+  "category": "config",
+  "description": "User wants to check their setup and run diagnostics.",
+  "user_intent": "Check my rpcli configuration, run diagnostics to make sure everything is set up correctly, and show the version.",
+  "expected_outcome": "Agent runs config show, doctor, and version commands. All return valid output showing the current configuration state.",
+  "max_turns": 6
+}

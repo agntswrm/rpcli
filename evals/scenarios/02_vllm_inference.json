@@ -1,0 +1,8 @@
+{
+  "name": "Deploy vLLM inference endpoint",
+  "category": "endpoint",
+  "description": "User wants to serve a Llama model with vLLM as a serverless endpoint with environment variables and docker args.",
+  "user_intent": "I need a serverless endpoint to serve Llama-3 8B with vLLM. Name it rpcli-eval-vllm. Use vllm/vllm-openai:latest as the image. Pass --model meta-llama/Llama-3-8B as docker args. Set env var HF_TOKEN=test123. I need a GPU with at least 24GB VRAM. After creating, verify the endpoint exists.",
+  "expected_outcome": "Agent creates an endpoint with the vLLM image, docker args for the model, HF_TOKEN env var, and a 24GB+ GPU type. The endpoint is verified to exist.",
+  "max_turns": 8
+}

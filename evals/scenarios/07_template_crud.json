@@ -1,0 +1,8 @@
+{
+  "name": "Template create-list-delete lifecycle",
+  "category": "template",
+  "description": "User wants to create a template, verify it exists, then delete it.",
+  "user_intent": "Create a template named rpcli-eval-tmpl with image runpod/pytorch:2.1.0 and container disk 20GB. Then list templates to verify it was created.",
+  "expected_outcome": "Agent creates the template and lists templates showing rpcli-eval-tmpl exists.",
+  "max_turns": 6
+}

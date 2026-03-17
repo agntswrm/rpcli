@@ -251,7 +251,7 @@ This verification is ground truth. If the expected outcome requires creating a r
 4. **Understanding** (2pts): Did the agent demonstrate understanding of the CLI and task domain?
 
 Score 7+ = pass. An agent that fails to figure out the right commands or gives up early should score low.
-If the verification shows no resources were created but the task required creating resources, score <= 4.
+If the verification shows no resources were created but the task required creating resources, score <= 4 — UNLESS the expected outcome explicitly allows for a platform-level failure (e.g. "no instances available" for spot pods). In that case, judge whether the agent used the correct commands and handled the error gracefully.
 
 Respond with ONLY valid JSON (no markdown fences):
 {"score": <1-10>, "verdict": "pass|warn|fail", "reasoning": "<1-2 sentences>", "issues": ["issue1", "issue2"]}`;

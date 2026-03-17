@@ -1,0 +1,8 @@
+{
+  "name": "Vague: deploy a model for inference",
+  "category": "endpoint",
+  "description": "User gives a vague request for serving a model — agent must discover GPUs and set up everything.",
+  "user_intent": "I want to serve a machine learning model as an API. I need a GPU with at least 24GB VRAM. Use the runpod/pytorch:2.1.0 image. Name it rpcli-eval-vague-ep. Set it to scale between 0 and 3 workers.",
+  "expected_outcome": "Agent discovers available GPUs with 24GB+ VRAM, picks an appropriate GPU ID, and creates the endpoint with the correct worker scaling. The endpoint is created successfully.",
+  "max_turns": 10
+}

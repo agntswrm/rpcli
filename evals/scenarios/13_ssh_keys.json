@@ -1,0 +1,8 @@
+{
+  "name": "SSH key management",
+  "category": "ssh",
+  "description": "User wants to list their SSH keys on Runpod.",
+  "user_intent": "List my SSH keys that are registered with Runpod.",
+  "expected_outcome": "Agent lists SSH keys showing any registered keys. Command succeeds with valid output.",
+  "max_turns": 3
+}

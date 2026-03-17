@@ -1,0 +1,8 @@
+{
+  "name": "Private Docker registry setup",
+  "category": "registry",
+  "description": "User wants to add Docker Hub credentials for pulling private images.",
+  "user_intent": "Add my Docker Hub credentials so I can pull private images. Registry name: rpcli-eval-dockerhub, username: evaluser, password: evalpass123. Then verify it was added.",
+  "expected_outcome": "Agent creates registry credentials and lists them showing rpcli-eval-dockerhub exists.",
+  "max_turns": 5
+}

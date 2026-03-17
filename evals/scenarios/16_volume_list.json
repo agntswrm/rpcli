@@ -1,0 +1,8 @@
+{
+  "name": "List network volumes",
+  "category": "volume",
+  "description": "User wants to see their persistent network storage volumes.",
+  "user_intent": "Show me all my network storage volumes.",
+  "expected_outcome": "Agent lists volumes with valid output showing volume details.",
+  "max_turns": 3
+}

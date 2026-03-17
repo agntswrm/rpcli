@@ -1,0 +1,8 @@
+{
+  "name": "Vague: pod with network volume for PyTorch",
+  "category": "pod",
+  "description": "User gives a vague request — agent must figure out GPU name, create volume, attach it.",
+  "user_intent": "I need a pod with a 4090 to run PyTorch training. I want persistent storage via a network volume so my data survives restarts. Name everything with rpcli-eval-vague prefix.",
+  "expected_outcome": "Agent figures out the full GPU name (NVIDIA GeForce RTX 4090), creates a network volume, creates a pod with the volume attached, and uses an appropriate PyTorch image. All resources are named with rpcli-eval-vague prefix.",
+  "max_turns": 12
+}

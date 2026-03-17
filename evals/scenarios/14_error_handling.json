@@ -1,0 +1,8 @@
+{
+  "name": "Error handling and validation",
+  "category": "error_handling",
+  "description": "User wants to verify the CLI properly validates inputs and shows helpful errors.",
+  "user_intent": "Test that the CLI handles errors properly. Try creating an endpoint without a name, and try deleting a pod without --yes. I want to see that it gives clear error messages.",
+  "expected_outcome": "Agent attempts invalid commands and observes clear error messages. Missing required flags produce actionable errors. Destructive ops without --yes are rejected.",
+  "max_turns": 6
+}

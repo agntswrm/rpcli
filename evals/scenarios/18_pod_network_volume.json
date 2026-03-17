@@ -1,0 +1,8 @@
+{
+  "name": "Pod with Network Volume",
+  "category": "pod",
+  "description": "Create a GPU pod with a network volume attached for persistent storage.",
+  "user_intent": "Create a GPU pod with a network volume for persistent storage. First create a 10GB network volume named rpcli-eval-pod-vol in US-TX-3. Then create a pod named rpcli-eval-pod-vol on 'NVIDIA GeForce RTX 4090' with image runpod/pytorch:2.1.0 and attach the network volume using --network-volume. Verify the pod was created.",
+  "expected_outcome": "Agent creates a volume, creates a pod with --network-volume pointing to that volume ID, and verifies the pod was created.",
+  "max_turns": 10
+}
